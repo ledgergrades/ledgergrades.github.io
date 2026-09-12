@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ledger grades - Login</title>
+<link rel="icon" type="image/png" href="https://i.ibb.co/sJt7pKb8/Chat-GPT-Image-Sep-10-2026-05-56-27-PM.png">
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+
+  <main class="login-shell">
+    <div class="login-mark">
+      <span class="mark-line"></span>
+      <h1>Ledger Grades</h1>
+      <p class="tagline">Your Home Access Center grades, read cleanly.</p>
+    </div>
+
+    <div id="flash" class="flash-error" hidden></div>
+
+    <form class="login-form" id="login-form">
+      <label>
+        <span>District</span>
+        <select name="district_url" required>
+          <option value="" disabled selected>Choose your district</option>
+          <option value="https://homeaccess.katyisd.org/HomeAccess">Katy ISD</option>
+        </select>
+      </label>
+      <label>
+        <span>Username</span>
+        <input type="text" name="username" autocomplete="username" required>
+      </label>
+      <label>
+        <span>Password</span>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="btn-primary" id="login-btn">Sign in</button>
+    </form>
+
+    <div class="login-divider"><span>or</span></div>
+
+    <button type="button" class="btn-ghost" id="demo-btn">See it with sample grades</button>
+
+    <p class="login-footnote">
+      Credentials go straight from this page to the API server, then to your
+      district's own HAC site over HTTPS; nothing is stored except your most
+      recent averages, kept to show how each grade has moved since you last
+      checked.
+    </p>
+
+    <div class="stats-panel" id="stats-panel" hidden>
+      <div class="stats-bar">
+        <span id="stats-today">—</span>
+        <span class="stats-sep">·</span>
+        <span id="stats-total">—</span>
+      </div>
+      <button type="button" class="stats-toggle" id="stats-toggle">Last 7 days</button>
+      <div class="stats-days" id="stats-days" hidden></div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="stats.js"></script>
+  <script src="api.js"></script>
+</body>
+</html>

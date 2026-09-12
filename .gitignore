@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+venv/
+.env
+backend/instance/snapshots/*.json
+backend/instance/analytics.json
