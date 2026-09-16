@@ -10,18 +10,29 @@ function getVisitorId() {
 }
 
 /**
- * Fetches JSON with automatic retries. The backend runs on Render's free
- * tier, which spins the server down after 15 minutes idle and takes about
- * a minute to wake back up — during that window it returns an HTML "waking
- * up" page instead of JSON, or the connection fails outright. This retries
- * a few times with a delay so a cold start doesn't look like a broken app,
- * and calls onRetry (if given) so the UI can show a "waking up" message.
+ * Fetches JSON with automatic retries and a timeout per attempt. The backend
+ * runs on Render's free tier, which spins the server down after 15 minutes
+ * idle and takes about a minute to wake back up — during that window it
+ * returns an HTML "waking up" page instead of JSON, or the connection fails
+ * outright. This retries a few times with a delay so a cold start doesn't
+ * look like a broken app, and calls onRetry (if given) so the UI can show a
+ * "waking up" message.
+ *
+ * The timeout matters separately from retries: a network that silently
+ * drops the connection (e.g. a school firewall blocking the backend's
+ * domain) doesn't fail fetch() quickly — it can hang for a long time before
+ * the browser gives up on its own. Aborting each attempt after a fixed
+ * timeout means the user sees a clear failure in a predictable amount of
+ * time instead of an indefinite "waking up" state.
  */
-async function fetchJSON(url, options = {}, { retries = 3, delayMs = 5000, onRetry } = {}) {
+async function fetchJSON(url, options = {}, { retries = 3, delayMs = 5000, timeoutMs = 12000, onRetry } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const resp = await fetch(url, options);
+      const resp = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
       const contentType = resp.headers.get("content-type") || "";
       if (!contentType.includes("application/json")) {
         throw new Error("Server returned a non-JSON response (likely still waking up)");
@@ -29,7 +40,10 @@ async function fetchJSON(url, options = {}, { retries = 3, delayMs = 5000, onRet
       const data = await resp.json();
       return { ok: resp.ok, status: resp.status, data };
     } catch (err) {
-      lastErr = err;
+      clearTimeout(timer);
+      lastErr = err.name === "AbortError"
+        ? new Error("Request timed out — the server may be unreachable from this network")
+        : err;
       if (attempt === retries) break;
       if (onRetry) onRetry(attempt + 1, retries);
       await new Promise((res) => setTimeout(res, delayMs));

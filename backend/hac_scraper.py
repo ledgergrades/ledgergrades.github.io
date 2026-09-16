@@ -330,11 +330,12 @@ COURSE_NAME_OVERRIDES = {
 def humanize_course_name(raw: str) -> str:
     """
     Cleans up a raw HAC course name for display:
-    - looks it up in COURSE_NAME_OVERRIDES first (exact known renames)
-    - otherwise strips the leading number HAC prepends, pulls out a tag
-      (AP / KGT / K / DC / A) from the remaining words, and reformats as
-      "{core name} ({tag})" — keeping the course name's own wording as-is
-      rather than guessing an expansion for abbreviations we don't know.
+    - strips the leading number/order token HAC prepends
+      (e.g. "32 ALG 2 KAP/GT A" -> "ALG 2 KAP/GT A")
+    - looks the result up in COURSE_NAME_OVERRIDES for the specific courses
+      that get a nicer display name
+    - for every other course, that's it — no tag extraction, no abbreviation
+      expansion, no reformatting. It's shown exactly as HAC names it.
     """
     raw = raw.strip()
     stripped = re.sub(r"^\d+\s+", "", raw).strip()
@@ -343,36 +344,7 @@ def humanize_course_name(raw: str) -> str:
         if stripped.upper() == key.upper():
             return value
 
-    tokens = stripped.split()
-    if not tokens:
-        return raw
-
-    tag = None
-    if tokens[0].upper() == "AP":
-        tag = "AP"
-        tokens = tokens[1:]
-    else:
-        upper_tokens = [t.upper() for t in tokens]
-        if "KAP/GT" in upper_tokens:
-            tag = "KGT"
-            tokens.pop(upper_tokens.index("KAP/GT"))
-        elif "KAP" in upper_tokens:
-            tag = "K"
-            tokens.pop(upper_tokens.index("KAP"))
-        elif "DC" in upper_tokens:
-            tag = "DC"
-            tokens.pop(upper_tokens.index("DC"))
-
-    # Drop a trailing lone "A" token — HAC's generic section filler — whether
-    # or not another tag was already found above.
-    if tokens and tokens[-1].upper() == "A":
-        tokens.pop()
-
-    if tag is None:
-        tag = "A"
-
-    core = " ".join(tokens).strip() or stripped
-    return f"{core} ({tag})"
+    return stripped or raw
 
 
 def letter_grade(average: float | None) -> str:
@@ -412,4 +384,4 @@ def what_if(category_averages: dict[str, float], category_weights: dict[str, flo
         weighted_sum += new_avg * weight
         weight_total += weight
 
-    return round(weighted_sum / weight_total, 2) if weight_total else 0.0
+    return weighted_sum / weight_total if weight_total else 0.0

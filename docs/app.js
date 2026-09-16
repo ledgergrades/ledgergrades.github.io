@@ -9,7 +9,16 @@ function letterGrade(avg) {
 }
 
 function fmt(n) {
+  // Used only for the big course-average number — rounds to a whole number.
   return n === null || n === undefined ? "—" : Math.round(Number(n)).toString();
+}
+
+function fmt2(n) {
+  // Used everywhere else (categories, assignments, what-if) — always shows
+  // exactly 2 decimal places, e.g. 95 -> "95.00", 95.678 -> "95.68". This
+  // only affects display; the underlying number is never rounded or
+  // truncated before this point.
+  return n === null || n === undefined ? "—" : Number(n).toFixed(2);
 }
 
 function mean(arr) {
@@ -39,8 +48,11 @@ function shiftMarkup(course) {
   if (course.shift === null || course.shift === undefined) {
     return `<span class="shift na">first look</span>`;
   }
-  if (course.shift > 0) return `<span class="shift up">+${course.shift}</span>`;
-  if (course.shift < 0) return `<span class="shift down">${course.shift}</span>`;
+  // Classify with a tiny epsilon so float noise (e.g. 91.4 - 89.2 in binary
+  // floating point) doesn't show a near-zero shift as "up" or "down" —
+  // the stored/displayed value itself is never rounded, only compared.
+  if (course.shift > 0.005) return `<span class="shift up">+${course.shift.toFixed(2)}</span>`;
+  if (course.shift < -0.005) return `<span class="shift down">${course.shift.toFixed(2)}</span>`;
   return `<span class="shift flat">no change</span>`;
 }
 
@@ -49,7 +61,7 @@ function categoryRowsMarkup(course) {
     <tr>
       <td>${cat.name}</td>
       <td>${cat.weight !== null && cat.weight !== undefined ? cat.weight + "%" : "—"}</td>
-      <td class="grade-${letterGrade(cat.average).toLowerCase()}">${fmt(cat.average)}</td>
+      <td class="grade-${letterGrade(cat.average).toLowerCase()}">${fmt2(cat.average)}</td>
     </tr>
   `).join("");
 }
@@ -63,8 +75,8 @@ function assignmentRowsMarkup(course) {
     <tr>
       <td>${stripAsterisk(a.name)}</td>
       <td>${stripAsterisk(a.category) || "—"}</td>
-      <td>${a.score !== null && a.score !== undefined ? Math.round(a.score) : "—"}</td>
-      <td>${a.points_possible !== null && a.points_possible !== undefined ? Math.round(a.points_possible) : "—"}</td>
+      <td>${fmt2(a.score)}</td>
+      <td>${fmt2(a.points_possible)}</td>
     </tr>
   `).join("");
 }
@@ -123,7 +135,7 @@ function courseRowMarkup(course) {
             <div class="whatif-rows">${whatifRowsMarkup(course)}</div>
             <div class="whatif-result">
               <span>Projected average:</span>
-              <strong class="whatif-projected">${fmt(course.average)}</strong>
+              <strong class="whatif-projected">${fmt2(course.average)}</strong>
               <span class="whatif-letter"></span>
               <button type="button" class="btn-ghost small whatif-reset">Reset</button>
             </div>
@@ -210,7 +222,7 @@ function wireUpRow(row, courseByName) {
       letterEl.textContent = "";
       return;
     }
-    projectedEl.textContent = Math.round(projected).toString();
+    projectedEl.textContent = fmt2(projected);
     letterEl.textContent = letterGrade(projected);
   }
 
@@ -219,7 +231,7 @@ function wireUpRow(row, courseByName) {
       Object.keys(hypothetical).forEach((k) => (hypothetical[k] = []));
       row.querySelectorAll(".whatif-chips").forEach((el) => (el.innerHTML = ""));
       const course = courseByName[courseName];
-      projectedEl.textContent = fmt(course.average);
+      projectedEl.textContent = fmt2(course.average);
       letterEl.textContent = "";
     });
   }

@@ -42,7 +42,7 @@ function attachClientSideShifts(courses, districtUrl, username) {
   courses.forEach((c) => {
     const prevAvg = previous[c.course_name];
     if (prevAvg !== undefined && c.average !== null && c.average !== undefined) {
-      c.shift = Math.round((c.average - prevAvg) * 100) / 100;
+      c.shift = c.average - prevAvg;
     } else {
       c.shift = null;
     }
@@ -60,7 +60,14 @@ async function goToDashboard(courses, mode, username) {
 }
 
 function handleFetchError(err) {
-  if (err.message.includes("non-JSON") || err.message.includes("Failed to fetch")) {
+  if (err.message.includes("timed out")) {
+    setFlash(
+      "The server never responded, even after retrying. If this only happens on " +
+      "one network (like school wifi), that network is likely blocking access to " +
+      "the backend's hosting domain — try a different network (e.g. cellular data) " +
+      "to confirm."
+    );
+  } else if (err.message.includes("non-JSON") || err.message.includes("Failed to fetch")) {
     setFlash(
       "Couldn't reach the server after several tries. The backend may be waking up " +
       "from being idle (this can take up to a minute on the free hosting tier) — " +

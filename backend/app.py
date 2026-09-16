@@ -23,7 +23,8 @@ import copy
 import hashlib
 import json
 import os
-from datetime import date, timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from flask import Flask, request, jsonify
@@ -238,6 +239,17 @@ def health():
 # View counter — daily + all-time views and unique viewers
 # ---------------------------------------------------------------------- #
 
+CENTRAL_TZ = ZoneInfo("America/Chicago")
+
+
+def today_central():
+    # Render's server clock runs in UTC, so date.today() would flip to the
+    # next day hours before it's actually midnight in Central time (e.g. a
+    # 9pm Tuesday visit was landing in Wednesday's bucket). This always uses
+    # the wall-clock date in Central time instead, DST-aware.
+    return datetime.now(CENTRAL_TZ).date()
+
+
 def load_analytics() -> dict:
     if ANALYTICS_PATH.exists():
         return json.loads(ANALYTICS_PATH.read_text())
@@ -256,7 +268,7 @@ def track_view():
         return jsonify({"error": "visitor_id is required"}), 400
 
     analytics = load_analytics()
-    today = date.today().isoformat()
+    today = today_central().isoformat()
 
     day = analytics["days"].setdefault(today, {"views": 0, "visitors": []})
     day["views"] += 1
@@ -274,7 +286,7 @@ def track_view():
 @app.route("/api/stats")
 def stats():
     analytics = load_analytics()
-    today = date.today()
+    today = today_central()
 
     days_out = []
     for i in range(6, -1, -1):  # 6 days ago ... today = 7 days total
